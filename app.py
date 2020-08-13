@@ -1,80 +1,49 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request
+import sys
+import os
+import datetime
+import atexit
+
+# import configparser
+
+from helpers.myutils import config, getSKP, logInfo, xlsx_to_response
+from RouteControllers.mainRoute import testRoute, getHome
+from RouteControllers.oracleRoute import getOracleSql
 
 app = Flask(__name__)
 
-stores = [{"name": "My Store", "items": [{"name": "my item", "price": 15.99}]}]
 
-print("Tu jestem")
-
-
-@app.route(
-    "/"
-)  # tp jest decorator wiec ta funckja pod spodem jest przekazywan do funcjcji @app.route
-def home():
-    # return "hej"
-    return render_template("index.html")
+# sys.path.append("/app/odbclient/product/12.1.0/client_1/")
+# sys.path.append("/app/odbclient/product/12.1.0/client_1/lib/")
+# os.environ["ORACLE_HOME"] = "/app/odbclient/product/12.1.0/client_1/"
 
 
-# post /store data: {name :}
-@app.route("/store", methods=["POST"])
-def create_store():
-    request_data = request.get_json()
-    new_store = {"name": request_data["name"], "items": []}
-    stores.append(new_store)
-    return jsonify({"stores": stores})
+# config = configparser.ConfigParser()
+# config.read("config.ini")
+base = config["DEFAULT"]["BASE"]
+print("****\nStart aplikacji\n****\n")
 
 
-# pass
+app.add_url_rule(base, "getHome", getHome)
+app.add_url_rule("/test/<string:id>", "testRoute", testRoute)
+app.add_url_rule(base + "/oracle/<string:id>", "getOracleSql", getOracleSql)
 
 
-# get /store/<name> data: {name :}
-@app.route("/store/<string:name>")
-def get_store(name):
-    print("W gunckji")
-    print(name)
-    for store in stores:
-        if store["name"] == name:
-            return jsonify(store)
-    return jsonify({"message": "store not found 2", "szukane": name})
+@app.errorhandler(404)
+def page_not_found(e):
+    return jsonify({"error": 404}), 404
 
 
-# pass
+# @app.route(base + "/store", methods=["POST"])
+# def create_store():
+#     request_data = request.get_json()
+#     new_store = {"name": request_data["name"], "items": []}
+#     stores.append(new_store)
+#     return jsonify({"stores": stores})
 
 
-# get /store
-@app.route("/store")
-def get_stores():
-    return jsonify({"stores": stores})
+app.run(host="0.0.0.0", port=9661)
 
 
-# return jsonify(stores)
+# https://cx-oracle.readthedocs.io/en/latest/user_guide/connection_handling.html#establishing-database-connections
 
-
-# post /store/<name> data: {name :}
-@app.route("/store/<string:name>/item", methods=["POST"])
-def create_item_in_store(name):
-    request_data = request.get_json()
-    for store in stores:
-        if store["name"] == name:
-            new_item = {"name": request_data["name"], "price": request_data["price"]}
-            store["items"].append(new_item)
-            return jsonify(new_item)
-    return jsonify({"message": "store not found"})
-
-
-# pass
-
-
-# get /store/<name>/item data: {name :}
-@app.route("/store/<string:name>/item")
-def get_item_in_store(name):
-    for store in stores:
-        if store["name"] == name:
-            return jsonify({"items": store["items"]})
-    return jsonify({"message": "store not found"})
-
-
-# pass
-
-
-app.run(port=5000)
